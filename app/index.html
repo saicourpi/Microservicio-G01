@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recomendación Agrícola</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f8;
+            padding: 40px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .result {
+            margin-top: 20px;
+            background: #eef;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Recomendador de Cultivo 🌱</h2>
+
+    <input type="text" id="provincia" placeholder="Provincia (ej: CHICLAYO)">
+    <input type="text" id="distrito" placeholder="Distrito (ej: CHICLAYO)">
+    
+    <button onclick="consultar()">Consultar</button>
+
+    <div class="result" id="resultado"></div>
+</div>
+
+<script>
+async function consultar() {
+    const provincia = document.getElementById("provincia").value;
+    const distrito = document.getElementById("distrito").value;
+
+    const url = `http://127.0.0.1:8000/recomendar-cultivo?provincia=${provincia}&distrito=${distrito}`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (res.status !== 200) {
+            document.getElementById("resultado").innerHTML = data.detail;
+            return;
+        }
+
+        document.getElementById("resultado").innerHTML = `
+            <b>Cultivo óptimo:</b> ${data.cultivo_optimo} <br>
+            <b>Rendimiento:</b> ${data.rendimiento_historico_tn} tn <br>
+            <b>Temp Max:</b> ${data.condiciones_climaticas_asociadas.temp_max_media_c} °C <br>
+            <b>Temp Min:</b> ${data.condiciones_climaticas_asociadas.temp_min_media_c} °C <br>
+            <b>Precipitación:</b> ${data.condiciones_climaticas_asociadas.precipitacion_media_mm} mm
+        `;
+    } catch (error) {
+        document.getElementById("resultado").innerHTML = "Error conectando con la API";
+    }
+}
+</script>
+
+</body>
+</html>
