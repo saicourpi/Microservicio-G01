@@ -2,74 +2,177 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recomendación Agrícola</title>
+
     <style>
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             background: #f4f6f8;
             padding: 40px;
         }
+
         .container {
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 10px;
-            max-width: 500px;
+            max-width: 550px;
             margin: auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
         }
+
+        h2 {
+            text-align: center;
+            color: #2e7d32;
+        }
+
         input, button {
             width: 100%;
-            padding: 10px;
-            margin-top: 10px;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 15px;
         }
+
+        button {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #256428;
+        }
+
         .result {
             margin-top: 20px;
-            background: #eef;
-            padding: 10px;
-            border-radius: 5px;
+            background: #eef5ee;
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.7;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #1b5e20;
         }
     </style>
 </head>
+
 <body>
 
 <div class="container">
-    <h2>Recomendador de Cultivo 🌱</h2>
 
-    <input type="text" id="provincia" placeholder="Provincia (ej: CHICLAYO)">
-    <input type="text" id="distrito" placeholder="Distrito (ej: CHICLAYO)">
-    
-    <button onclick="consultar()">Consultar</button>
+    <h2>🌱 Recomendador de Cultivo</h2>
 
-    <div class="result" id="resultado"></div>
+    <input 
+        type="text" 
+        id="provincia" 
+        placeholder="Provincia (ej: ICA)"
+    >
+
+    <input 
+        type="text" 
+        id="distrito" 
+        placeholder="Distrito (ej: LA TINGUIÑA)"
+    >
+
+    <button onclick="consultar()">
+        Consultar Recomendación
+    </button>
+
+    <div class="result" id="resultado">
+        Ingrese una provincia y distrito.
+    </div>
+
 </div>
 
 <script>
-async function consultar() {
-    const provincia = document.getElementById("provincia").value;
-    const distrito = document.getElementById("distrito").value;
 
-    const url = `http://127.0.0.1:8000/recomendar-cultivo?provincia=${provincia}&distrito=${distrito}`;
+async function consultar() {
+
+    const provincia = document.getElementById("provincia").value.trim();
+    const distrito = document.getElementById("distrito").value.trim();
+
+    const resultado = document.getElementById("resultado");
+
+    // Validación básica
+    if (!provincia || !distrito) {
+
+        resultado.innerHTML = `
+            <span class="error">
+                Debe ingresar provincia y distrito.
+            </span>
+        `;
+
+        return;
+    }
+
+    const url = `http://127.0.0.1:8000/recomendar-cultivo?provincia=${encodeURIComponent(provincia)}&distrito=${encodeURIComponent(distrito)}`;
 
     try {
-        const res = await fetch(url);
-        const data = await res.json();
 
-        if (res.status !== 200) {
-            document.getElementById("resultado").innerHTML = data.detail;
+        resultado.innerHTML = "Consultando datos...";
+
+        const response = await fetch(url);
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+            resultado.innerHTML = `
+                <span class="error">
+                    ${data.detail}
+                </span>
+            `;
+
             return;
         }
 
-        document.getElementById("resultado").innerHTML = `
-            <b>Cultivo óptimo:</b> ${data.cultivo_optimo} <br>
-            <b>Rendimiento:</b> ${data.rendimiento_historico_tn} tn <br>
-            <b>Temp Max:</b> ${data.condiciones_climaticas_asociadas.temp_max_media_c} °C <br>
-            <b>Temp Min:</b> ${data.condiciones_climaticas_asociadas.temp_min_media_c} °C <br>
-            <b>Precipitación:</b> ${data.condiciones_climaticas_asociadas.precipitacion_media_mm} mm
+        resultado.innerHTML = `
+            <div class="success">
+
+                <b>🌾 Cultivo óptimo:</b> 
+                ${data.cultivo_optimo}
+                <br><br>
+
+                <b>📈 Rendimiento histórico:</b> 
+                ${data.rendimiento_historico_tn} tn
+                <br><br>
+
+                <b>🌡 Temperatura máxima promedio:</b> 
+                ${data.condiciones_climaticas_asociadas.temp_max_media_c} °C
+                <br><br>
+
+                <b>❄ Temperatura mínima promedio:</b> 
+                ${data.condiciones_climaticas_asociadas.temp_min_media_c} °C
+                <br><br>
+
+                <b>🌧 Precipitación promedio:</b> 
+                ${data.condiciones_climaticas_asociadas.precipitacion_media_mm} mm
+
+            </div>
         `;
+
     } catch (error) {
-        document.getElementById("resultado").innerHTML = "Error conectando con la API";
+
+        resultado.innerHTML = `
+            <span class="error">
+                Error conectando con la API.
+            </span>
+        `;
+
+        console.error(error);
     }
 }
+
 </script>
 
 </body>
