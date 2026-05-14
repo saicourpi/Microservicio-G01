@@ -2,171 +2,17 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import os
-from typing import Dict, Any
-import logging
-
-# Configuración de logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("agro_microservice")
+import unicodedata
 
 app = FastAPI(
-    title="Microservicio de Recomendación Agrícola",
-    description="Recomienda el cultivo óptimo según historial agrícola y climático.",
-    version="2.0.0"
+    title="Sistema de Recomendación Agrícola",
+    version="5.0"
 )
 
-# Cache global
-_df_cache: pd.DataFrame | None = None
+# =========================
+# CORS
+# =========================
 
-
-def load_and_clean_dataset() -> pd.DataFrame:
-    """
-    Carga y limpia el dataset agrícola.
-    """
-    global _df_cache
-
-    file_path = "DATASET_MAESTRO_ML.xlsx"
-
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"No se encontró el dataset: {file_path}")
-
-    # Leer Excel
-    df = pd.read_excel(file_path)
-
-    # Limpiar nombres de columnas
-    df.columns = df.columns.str.strip()
-
-    print("COLUMNAS DEL DATASET:")
-    print(df.columns)
-
-    # Columnas numéricas del nuevo dataset
-    numeric_cols = [
-        'temp_max',
-        'temp_min',
-        'precipitacion',
-        'produccion_t'
-    ]
-
-    # Convertir columnas numéricas
-    for col in numeric_cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    # Eliminar registros vacíos
-    df = df.dropna(subset=[
-        'prov',
-        'dist',
-        'cultivo',
-        'produccion_t'
-    ])
-
-    # Filtrar producción válida
-    df = df[df['produccion_t'] > 0]
-
-    _df_cache = df.copy()
-
-    logger.info("Dataset cargado correctamente.")
-
-    return df
-
-
-@app.on_event("startup")
-def startup_event():
-    load_and_clean_dataset()
-
-
-@app.get("/recomendar-cultivo", response_model=Dict[str, Any])
-def recomendar_cultivo(
-    provincia: str = Query(..., description="Provincia"),
-    distrito: str = Query(..., description="Distrito")
-):
-    """
-    Recomienda el cultivo con mejor rendimiento histórico.
-    """
-
-    if _df_cache is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Dataset no cargado correctamente."
-        )
-
-    # Filtro geográfico
-    mask = (
-        (_df_cache['prov'].astype(str).str.upper().str.strip() == provincia.upper().strip()) &
-        (_df_cache['dist'].astype(str).str.upper().str.strip() == distrito.upper().strip())
-    )
-
-    df_loc = _df_cache[mask]
-
-    if df_loc.empty:
-        raise HTTPException(
-            status_code=404,
-            detail="No existen datos para la ubicación indicada."
-        )
-
-    # Agrupación estadística
-    crop_metrics = df_loc.groupby('cultivo').agg(
-        produccion_promedio=('produccion_t', 'mean'),
-        produccion_maxima=('produccion_t', 'max'),
-        temp_max_promedio=('temp_max', 'mean'),
-        temp_min_promedio=('temp_min', 'mean'),
-        precipitacion_promedio=('precipitacion', 'mean'),
-        n_registros=('produccion_t', 'count')
-    ).reset_index()
-
-    # Ordenar por mejor producción
-    crop_metrics = crop_metrics.sort_values(
-        by='produccion_promedio',
-        ascending=False
-    ).reset_index(drop=True)
-
-    # Mejor cultivo
-    top_crop = crop_metrics.iloc[0]
-
-    return {
-        "ubicacion": {
-            "provincia": provincia,
-            "distrito": distrito
-        },
-
-        "cultivo_optimo": top_crop['cultivo'],
-
-        "rendimiento_historico_tn": round(
-            top_crop['produccion_promedio'], 2
-        ),
-
-        "rango_rendimiento_tn": {
-            "min": round(
-                crop_metrics['produccion_promedio'].min(), 2
-            ),
-            "max": round(
-                top_crop['produccion_maxima'], 2
-            )
-        },
-
-        "condiciones_climaticas_asociadas": {
-            "temp_max_media_c": round(
-                top_crop['temp_max_promedio'], 2
-            ),
-            "temp_min_media_c": round(
-                top_crop['temp_min_promedio'], 2
-            ),
-            "precipitacion_media_mm": round(
-                top_crop['precipitacion_promedio'], 2
-            )
-        },
-
-        "top_3_alternativas": crop_metrics.head(3)[
-            ['cultivo', 'produccion_promedio', 'n_registros']
-        ].to_dict(orient='records'),
-
-        "nota_metodologica": (
-            "La recomendación se basa en el rendimiento histórico "
-            "promedio registrado en el dataset."
-        )
-    }
-
-
-# Configuración CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -174,3 +20,181 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =========================
+# LIMPIAR TEXTO
+# =========================
+
+def limpiar_texto(texto):
+
+    if pd.isna(texto):
+        return ""
+
+    texto = str(texto).strip().upper()
+
+    texto = unicodedata.normalize('NFKD', texto)
+    texto = texto.encode('ASCII', 'ignore').decode('utf-8')
+
+    return texto
+
+# =========================
+# LEER DATASET
+# =========================
+
+file_path = "DATASET_MAESTRO_ML.xlsx"
+
+if not os.path.exists(file_path):
+    raise FileNotFoundError("No se encontró el dataset.")
+
+# Leer excel
+df = pd.read_excel(file_path)
+
+# Limpiar columnas
+df.columns = df.columns.str.strip().str.lower()
+
+# MOSTRAR COLUMNAS
+print("COLUMNAS DETECTADAS:")
+print(df.columns.tolist())
+
+# =========================
+# COLUMNAS NUMERICAS
+# =========================
+
+columnas_numericas = [
+    "anio",
+    "produccion_t",
+    "temp_max",
+    "temp_min",
+    "precipitacion"
+]
+
+for col in columnas_numericas:
+
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+# =========================
+# LIMPIAR COLUMNAS TEXTO
+# =========================
+
+columnas_texto = [
+    "dpto",
+    "prov",
+    "dist",
+    "cultivo"
+]
+
+for col in columnas_texto:
+
+    if col in df.columns:
+        df[col] = df[col].apply(limpiar_texto)
+
+# Convertir año entero
+df["anio"] = df["anio"].astype(int)
+
+print(df.head())
+
+# =========================
+# API
+# =========================
+
+@app.get("/recomendar-cultivo")
+def recomendar_cultivo(
+
+    anio: int = Query(...),
+
+    departamento: str = Query(...),
+
+    provincia: str = Query(...),
+
+    distrito: str = Query(...)
+):
+
+    departamento = limpiar_texto(departamento)
+    provincia = limpiar_texto(provincia)
+    distrito = limpiar_texto(distrito)
+
+    print("BUSCANDO:")
+    print(anio, departamento, provincia, distrito)
+
+    # =========================
+    # FILTRO
+    # =========================
+
+    filtro = df[
+
+        (df["anio"] == anio) &
+
+        (df["dpto"] == departamento) &
+
+        (df["prov"] == provincia) &
+
+        (df["dist"] == distrito)
+
+    ]
+
+    print("TOTAL ENCONTRADOS:")
+    print(len(filtro))
+
+    if filtro.empty:
+
+        raise HTTPException(
+            status_code=404,
+            detail="No existen datos para la ubicación indicada."
+        )
+
+    # Ordenar por producción
+    filtro = filtro.sort_values(
+        by="produccion_t",
+        ascending=False
+    )
+
+    resultados = []
+
+    for _, row in filtro.iterrows():
+
+        resultados.append({
+
+            "anio": int(row["anio"]),
+
+            "departamento": row["dpto"],
+
+            "provincia": row["prov"],
+
+            "distrito": row["dist"],
+
+            "cultivo": row["cultivo"],
+
+            "produccion_t": round(
+                float(row.get("produccion_t", 0)), 2
+            ),
+
+            "temp_max": round(
+                float(row.get("temp_max", 0)), 2
+            ),
+
+            "temp_min": round(
+                float(row.get("temp_min", 0)), 2
+            ),
+
+            "precipitacion": round(
+                float(row.get("precipitacion", 0)), 2
+            ),
+
+            "superficie_cosechada_ha": round(
+                float(row.get("superficie_cosechada_ha", 0)), 2
+            ),
+
+            "rendimiento_t_ha": round(
+                float(row.get("rendimiento_t_ha", 0)), 2
+            )
+
+        })
+
+    return {
+
+        "total_cultivos": len(resultados),
+
+        "resultados": resultados
+
+    }

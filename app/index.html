@@ -1,179 +1,373 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recomendación Agrícola</title>
+
+    <title>Sistema de Recomendación Agrícola</title>
 
     <style>
+
         body {
             font-family: Arial, sans-serif;
             background: #f4f6f8;
-            padding: 40px;
+            padding: 30px;
         }
 
         .container {
+
             background: white;
+            max-width: 1400px;
+            margin: auto;
             padding: 25px;
             border-radius: 10px;
-            max-width: 550px;
-            margin: auto;
             box-shadow: 0 0 12px rgba(0,0,0,0.1);
         }
 
-        h2 {
+        h1 {
+
             text-align: center;
             color: #2e7d32;
         }
 
-        input, button {
+        .grid {
+
+            display: grid;
+            grid-template-columns: repeat(2,1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        select, button {
+
             width: 100%;
             padding: 12px;
-            margin-top: 12px;
-            border-radius: 5px;
+            border-radius: 6px;
             border: 1px solid #ccc;
             font-size: 15px;
         }
 
         button {
+
             background: #2e7d32;
             color: white;
             border: none;
             cursor: pointer;
             font-weight: bold;
+            margin-top: 20px;
         }
 
         button:hover {
             background: #256428;
         }
 
-        .result {
+        .resultado {
+            margin-top: 30px;
+        }
+
+        table {
+
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
-            background: #eef5ee;
-            padding: 15px;
-            border-radius: 8px;
-            line-height: 1.7;
+            background: white;
+        }
+
+        th {
+
+            background: #2e7d32;
+            color: white;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        td {
+
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background: #f2f2f2;
         }
 
         .error {
+
             color: red;
             font-weight: bold;
+            margin-top: 20px;
         }
 
-        .success {
-            color: #1b5e20;
-        }
     </style>
+
 </head>
 
 <body>
 
 <div class="container">
 
-    <h2>🌱 Recomendador de Cultivo</h2>
+    <h1>🌱 Sistema de Recomendación Agrícola</h1>
 
-    <input 
-        type="text" 
-        id="provincia" 
-        placeholder="Provincia (ej: ICA)"
-    >
+    <div class="grid">
 
-    <input 
-        type="text" 
-        id="distrito" 
-        placeholder="Distrito (ej: LA TINGUIÑA)"
-    >
+        <!-- AÑO -->
+        <div>
+
+            <label><b>Año</b></label>
+
+            <select id="anio" onchange="habilitarDepartamento()">
+
+                <option value="">Seleccione Año</option>
+
+                <option value="2017">2017</option>
+                <option value="2018">2018</option>
+                <option value="2019">2019</option>
+                <option value="2020">2020</option>
+                <option value="2021">2021</option>
+                <option value="2022">2022</option>
+                <option value="2023">2023</option>
+
+            </select>
+
+        </div>
+
+        <!-- DEPARTAMENTO -->
+        <div>
+
+            <label><b>Departamento</b></label>
+
+            <select id="departamento"
+                    disabled
+                    onchange="habilitarProvincia()">
+
+                <option value="">Seleccione Departamento</option>
+
+                <option value="ICA">ICA</option>
+
+            </select>
+
+        </div>
+
+        <!-- PROVINCIA -->
+        <div>
+
+            <label><b>Provincia</b></label>
+
+            <select id="provincia"
+                    disabled
+                    onchange="habilitarDistrito()">
+
+                <option value="">Seleccione Provincia</option>
+
+                <option value="ICA">ICA</option>
+                <option value="PISCO">PISCO</option>
+                <option value="CHINCHA">CHINCHA</option>
+                <option value="PALPA">PALPA</option>
+                <option value="NAZCA">NAZCA</option>
+
+            </select>
+
+        </div>
+
+        <!-- DISTRITO -->
+        <div>
+
+            <label><b>Distrito</b></label>
+
+            <select id="distrito" disabled>
+
+                <option value="">Seleccione Distrito</option>
+
+                <option value="LA TINGUIÑA">LA TINGUIÑA</option>
+                <option value="HUMAY">HUMAY</option>
+                <option value="SUNAMPE">SUNAMPE</option>
+                <option value="VISTA ALEGRE">VISTA ALEGRE</option>
+                <option value="PALPA">PALPA</option>
+
+            </select>
+
+        </div>
+
+    </div>
 
     <button onclick="consultar()">
-        Consultar Recomendación
+
+        Obtener Resultados
+
     </button>
 
-    <div class="result" id="resultado">
-        Ingrese una provincia y distrito.
-    </div>
+    <div class="resultado" id="resultado"></div>
 
 </div>
 
 <script>
 
-async function consultar() {
+    // =========================
+    // HABILITAR CAMPOS
+    // =========================
 
-    const provincia = document.getElementById("provincia").value.trim();
-    const distrito = document.getElementById("distrito").value.trim();
+    function habilitarDepartamento() {
 
-    const resultado = document.getElementById("resultado");
-
-    // Validación básica
-    if (!provincia || !distrito) {
-
-        resultado.innerHTML = `
-            <span class="error">
-                Debe ingresar provincia y distrito.
-            </span>
-        `;
-
-        return;
+        document.getElementById("departamento").disabled = false;
     }
 
-    const url = `http://127.0.0.1:8000/recomendar-cultivo?provincia=${encodeURIComponent(provincia)}&distrito=${encodeURIComponent(distrito)}`;
+    function habilitarProvincia() {
 
-    try {
+        document.getElementById("provincia").disabled = false;
+    }
 
-        resultado.innerHTML = "Consultando datos...";
+    function habilitarDistrito() {
 
-        const response = await fetch(url);
+        document.getElementById("distrito").disabled = false;
+    }
 
-        const data = await response.json();
+    // =========================
+    // CONSULTAR API
+    // =========================
 
-        if (!response.ok) {
+    async function consultar() {
+
+        const anio =
+            document.getElementById("anio").value;
+
+        const departamento =
+            document.getElementById("departamento").value;
+
+        const provincia =
+            document.getElementById("provincia").value;
+
+        const distrito =
+            document.getElementById("distrito").value;
+
+        const resultado =
+            document.getElementById("resultado");
+
+        // Validación
+
+        if (!anio ||
+            !departamento ||
+            !provincia ||
+            !distrito) {
 
             resultado.innerHTML = `
-                <span class="error">
-                    ${data.detail}
-                </span>
+                <div class="error">
+                    Complete todos los campos.
+                </div>
             `;
 
             return;
         }
 
-        resultado.innerHTML = `
-            <div class="success">
+        const url =
+`http://127.0.0.1:8000/recomendar-cultivo?anio=${anio}&departamento=${encodeURIComponent(departamento)}&provincia=${encodeURIComponent(provincia)}&distrito=${encodeURIComponent(distrito)}`;
 
-                <b>🌾 Cultivo óptimo:</b> 
-                ${data.cultivo_optimo}
-                <br><br>
+        try {
 
-                <b>📈 Rendimiento histórico:</b> 
-                ${data.rendimiento_historico_tn} tn
-                <br><br>
+            resultado.innerHTML = "Consultando datos...";
 
-                <b>🌡 Temperatura máxima promedio:</b> 
-                ${data.condiciones_climaticas_asociadas.temp_max_media_c} °C
-                <br><br>
+            const response = await fetch(url);
 
-                <b>❄ Temperatura mínima promedio:</b> 
-                ${data.condiciones_climaticas_asociadas.temp_min_media_c} °C
-                <br><br>
+            const data = await response.json();
 
-                <b>🌧 Precipitación promedio:</b> 
-                ${data.condiciones_climaticas_asociadas.precipitacion_media_mm} mm
+            if (!response.ok) {
 
-            </div>
-        `;
+                resultado.innerHTML = `
+                    <div class="error">
+                        ${data.detail}
+                    </div>
+                `;
 
-    } catch (error) {
+                return;
+            }
 
-        resultado.innerHTML = `
-            <span class="error">
-                Error conectando con la API.
-            </span>
-        `;
+            // =========================
+            // CREAR FILAS DINÁMICAS
+            // =========================
 
-        console.error(error);
+            let filas = "";
+
+            data.resultados.forEach(item => {
+
+                filas += `
+
+                    <tr>
+
+                        <td>${item.anio}</td>
+
+                        <td>${item.departamento}</td>
+
+                        <td>${item.provincia}</td>
+
+                        <td>${item.distrito}</td>
+
+                        <td>${item.cultivo}</td>
+
+                        <td>${item.produccion_t}</td>
+
+                        <td>${item.temp_max} °C</td>
+
+                        <td>${item.temp_min} °C</td>
+
+                        <td>${item.precipitacion} mm</td>
+
+                        <td>${item.superficie_cosechada_ha}</td>
+
+                        <td>${item.rendimiento_t_ha}</td>
+
+                    </tr>
+
+                `;
+            });
+
+            // =========================
+            // MOSTRAR TABLA
+            // =========================
+
+            resultado.innerHTML = `
+
+                <h2>🌾 Resultados Encontrados</h2>
+
+                <table>
+
+                    <tr>
+
+                        <th>Año</th>
+                        <th>Departamento</th>
+                        <th>Provincia</th>
+                        <th>Distrito</th>
+                        <th>Cultivo</th>
+                        <th>Producción (t)</th>
+                        <th>Temp Max</th>
+                        <th>Temp Min</th>
+                        <th>Precipitación</th>
+                        <th>Superficie Cosechada</th>
+                        <th>Rendimiento</th>
+
+                    </tr>
+
+                    ${filas}
+
+                </table>
+
+            `;
+
+        } catch(error) {
+
+            resultado.innerHTML = `
+                <div class="error">
+                    Error conectando con la API.
+                </div>
+            `;
+
+            console.error(error);
+        }
     }
-}
 
 </script>
 
 </body>
+
 </html>
