@@ -1,5 +1,5 @@
 // =========================================================================
-// 🗺️ PARTE 1: CARGA DINÁMICA DE UBICACIONES
+// PARTE 1: CARGA DINÁMICA DE UBICACIONES
 // =========================================================================
 
 let jerarquiaUbicaciones = {};
@@ -59,7 +59,7 @@ document.getElementById('prov').addEventListener('change', (e) => {
 });
 
 // =========================================================================
-// 🧠 PARTE 2: CONSULTA A LA IA (CLICK EN EL BOTÓN)
+// PARTE 2: CONSULTA A LA IA (CLICK EN EL BOTÓN)
 // =========================================================================
 
 document.getElementById('formulario-agro').addEventListener('submit', async (e) => {
@@ -79,7 +79,7 @@ document.getElementById('formulario-agro').addEventListener('submit', async (e) 
 
     try {
         // ==========================================
-        // 🌟 PASO 1: PEDIR OPORTUNIDADES DEL MES ACTUAL Y SU FICHA
+        // PASO 1: PEDIR OPORTUNIDADES DEL MES ACTUAL Y SU FICHA
         // ==========================================
         const resTemporada = await fetch(`${baseUrl}/temporada/oportunidades?dpto=${dpto}&prov=${prov}&dist=${dist}`);
         const dataTemporada = await resTemporada.json();
@@ -103,7 +103,7 @@ document.getElementById('formulario-agro').addEventListener('submit', async (e) 
             `;
         });
 
-        // 🌿 Buscamos la guía de cuidados para el ganador de ESTE MES (Opción 1 de la caja naranja)
+        // Buscamos la guía de cuidados para el ganador de ESTE MES (Opción 1 de la caja naranja)
         if (dataTemporada.oportunidades.length > 0) {
             const cultivoMesGanador = dataTemporada.oportunidades[0].cultivo;
             const resFichaMes = await fetch(`${baseUrl}/agronomia/ficha?cultivo=${cultivoMesGanador}`);
@@ -120,7 +120,7 @@ document.getElementById('formulario-agro').addEventListener('submit', async (e) 
         }
 
         // ==========================================
-        // 🌾 PASO 2: PEDIR LA RECOMENDACIÓN DE LA IA (TOP 3 GENERAL)
+        // PASO 2: PEDIR LA RECOMENDACIÓN DE LA IA (TOP 3 GENERAL)
         // ==========================================
         const resCultivos = await fetch(`${baseUrl}/cultivos/recomendar?dpto=${dpto}&prov=${prov}&dist=${dist}`);
         const dataCultivos = await resCultivos.json();
@@ -162,7 +162,7 @@ document.getElementById('formulario-agro').addEventListener('submit', async (e) 
         const cultivoGanador = top3Nombres[0]; 
 
         // ==========================================
-        // 📅 PASO 3: CALENDARIO DE SIEMBRA
+        //  PASO 3: CALENDARIO DE SIEMBRA
         // ==========================================
         const contenedorCalendario = document.getElementById('lista-calendario');
         contenedorCalendario.innerHTML = '<p class="text-xs text-gray-500 mb-3 italic">Para tener una buena cosecha, guarda la semilla y métela a la tierra solo en estos meses:</p>';
@@ -192,7 +192,7 @@ document.getElementById('formulario-agro').addEventListener('submit', async (e) 
         });
 
         // ==========================================
-        // 🚦 PASO 4: ALERTAS CLIMÁTICAS
+        // PASO 4: ALERTAS CLIMÁTICAS
         // ==========================================
         const resAlertas = await fetch(`${baseUrl}/alertas/evaluar?dpto=${dpto}&prov=${prov}&dist=${dist}`);
         const dataAlertas = await resAlertas.json();
@@ -212,7 +212,7 @@ document.getElementById('formulario-agro').addEventListener('submit', async (e) 
         }
 
         // ==========================================
-        // 💰 PASO 5: TENDENCIA DE PRECIOS
+        // PASO 5: TENDENCIA DE PRECIOS
         // ==========================================
         const resPrecios = await fetch(`${baseUrl}/precios/tendencia?dpto=${dpto}&prov=${prov}&dist=${dist}&cultivo=${cultivoGanador}`);
         const dataPrecios = await resPrecios.json();
@@ -234,7 +234,7 @@ document.getElementById('formulario-agro').addEventListener('submit', async (e) 
         }
 
         // ==========================================
-        // 📖 PASO 6: FICHA TÉCNICA DEL CULTIVO GENERAL (El ganador de la IA)
+        // PASO 6: FICHA TÉCNICA DEL CULTIVO GENERAL (El ganador de la IA)
         // ==========================================
         const resFichaGen = await fetch(`${baseUrl}/agronomia/ficha?cultivo=${cultivoGanador}`);
         const dataFichaGen = await resFichaGen.json();
