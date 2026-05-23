@@ -33,6 +33,11 @@ app.add_middleware(
 app.include_router(cultivos.router)
 app.include_router(alertas.router)
 app.include_router(agronomia.router)
+app.include_router(calendario.router)
+app.include_router(precios.router)
+app.include_router(ubicaciones.router)
+app.include_router(temporada.router)
+
 
 @app.get("/")
 def read_root():
